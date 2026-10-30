@@ -1,0 +1,10 @@
+# Local database and uploaded import files (never commit real data)
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/imports/
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
