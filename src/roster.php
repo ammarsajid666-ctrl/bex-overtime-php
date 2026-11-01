@@ -97,6 +97,12 @@ function process_roster_import(string $path, string $ext, array $team): array
         throw new RuntimeException('The file needs a header row and at least one data row.');
     }
 
+    foreach ($rows as $r) {
+        if (in_array('resource', array_map(fn($c) => strtolower(trim((string)$c)), $r), true)) {
+            return process_roster_grid($rows, $team);
+        }
+    }
+
     $header = array_map(fn($h) => strtolower(trim((string)$h)), $rows[0]);
     $find = function (string ...$names) use ($header): int {
         foreach ($names as $name) {
@@ -181,7 +187,13 @@ function save_roster_records(array $records): void
     $pdo = db();
     $pdo->beginTransaction();
     foreach ($records as $rec) {
-        save_roster_day($rec['user'], $rec['date'], $rec['duty']);
+        if (isset($rec['days'])) {
+            foreach ($rec['days'] as $date => $onDuty) {
+                save_roster_day($rec['user'], (string)$date, $onDuty);
+            }
+        } else {
+            save_roster_day($rec['user'], $rec['date'], $rec['duty']);
+        }
         if ($rec['shift'] !== '' || $rec['site'] !== '' || $rec['allocation'] !== '') {
             $current = roster_profiles([$rec['user']])[$rec['user']] ?? ['shift' => '', 'site' => '', 'allocation' => ''];
             save_roster_profile(
@@ -335,4 +347,111 @@ function roster_duty_for_requests(array $requests): array
     sort($dates);
     $ids = array_values(array_unique(array_column($requests, 'employee_user_id')));
     return roster_duty($ids, $dates[0], $dates[count($dates) - 1]);
+}
+
+
+/**
+ * Reads the monthly roster grid: Shift, Resource, Name, Site, Allocation, then one column per day
+ * labelled like "Sun 01-Nov", with ✓ (on duty) or ✗ (off). Blank cells are left unchanged.
+ * Employees are matched by name, or by resource code when there is no name.
+ */
+function process_roster_grid(array $rows, array $team): array
+{
+    $hdrIdx = null;
+    foreach ($rows as $i => $r) {
+        if (in_array('resource', array_map(fn($c) => strtolower(trim((string)$c)), $r), true)) {
+            $hdrIdx = $i;
+            break;
+        }
+    }
+    $header = array_map(fn($c) => trim((string)$c), $rows[$hdrIdx]);
+    $lower = array_map('strtolower', $header);
+    $idx = fn(string $name): int => ($found = array_search($name, $lower, true)) === false ? -1 : (int)$found;
+    $cResource = $idx('resource');
+    $cName = $idx('name');
+    $cShift = $idx('shift');
+    $cSite = $idx('site');
+    $cAlloc = $idx('allocation');
+
+    // The year comes from the title row, for example "Operation team roster - November 2026"
+    $year = 0;
+    foreach ($rows as $i => $r) {
+        if ($i >= $hdrIdx) break;
+        if (preg_match('/(\d{4})/', implode(' ', array_map('strval', $r)), $m)) {
+            $year = (int)$m[1];
+        }
+    }
+    if ($year === 0) $year = (int)date('Y');
+
+    $dayCols = [];
+    foreach ($header as $c => $label) {
+        if (preg_match('/^[A-Za-z]{3}\s+(\d{1,2})-([A-Za-z]{3})$/', $label, $m)) {
+            $d = DateTime::createFromFormat('!j-M Y', $m[1] . '-' . $m[2] . ' ' . $year);
+            if ($d) $dayCols[$c] = $d->format('Y-m-d');
+        }
+    }
+    if (!$dayCols) {
+        throw new RuntimeException('No day columns found. Day headers should look like "Sun 01-Nov".');
+    }
+
+    $byName = [];
+    $byCode = [];
+    foreach ($team as $u) {
+        $byName[strtolower($u['full_name'])] = $u;
+        if ($u['employee_id'] !== '') $byCode[strtolower($u['employee_id'])] = $u;
+    }
+
+    $out = [];
+    $seenUsers = [];
+    for ($i = $hdrIdx + 1; $i < count($rows); $i++) {
+        $r = $rows[$i];
+        $cell = fn(int $c): string => ($c >= 0 && isset($r[$c])) ? trim((string)$r[$c]) : '';
+        $code = $cell($cResource);
+        $name = $cell($cName);
+        if ($code === '' && $name === '') continue;
+
+        $marks = [];
+        foreach ($dayCols as $c => $date) {
+            $v = $cell($c);
+            if ($v === '✓') $marks[$date] = true;
+            elseif ($v === '✗') $marks[$date] = false;
+        }
+        $who = $name !== '' ? $name : $code;
+        if (!$marks) {
+            $out[] = ['line' => $i + 1, 'who' => $who, 'date' => '', 'result' => 'Skipped',
+                'message' => 'No ✓ or ✗ marks in this row.', 'record' => null];
+            continue;
+        }
+
+        // Match by name when there is one. Falling back to the code could attach marks to the wrong person.
+        $user = $name !== ''
+            ? ($byName[strtolower($name)] ?? null)
+            : ($byCode[strtolower($code)] ?? null);
+        if (!$user) {
+            $out[] = ['line' => $i + 1, 'who' => $who, 'date' => '', 'result' => 'Error',
+                'message' => "No employee in your team is named '$who'. Check the manager of this employee.", 'record' => null];
+            continue;
+        }
+        if (isset($seenUsers[$user['id']])) {
+            $out[] = ['line' => $i + 1, 'who' => $user['full_name'], 'date' => '', 'result' => 'Error',
+                'message' => 'This employee appears more than once in the file. Only the first row was used.', 'record' => null];
+            continue;
+        }
+        $seenUsers[$user['id']] = true;
+
+        $dates = array_keys($marks);
+        $on = count(array_filter($marks));
+        $out[] = [
+            'line' => $i + 1,
+            'who' => $user['full_name'],
+            'date' => fmt_date($dates[0]) . ' to ' . fmt_date($dates[count($dates) - 1]),
+            'result' => 'Ready',
+            'message' => $on . ' day(s) on duty, ' . (count($marks) - $on) . ' off.',
+            'record' => [
+                'user' => $user['id'], 'days' => $marks,
+                'shift' => $cell($cShift), 'site' => $cell($cSite), 'allocation' => $cell($cAlloc),
+            ],
+        ];
+    }
+    return $out;
 }
