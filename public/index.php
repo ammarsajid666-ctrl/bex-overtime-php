@@ -7,6 +7,8 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 require dirname(__DIR__) . '/src/views.php';
 require dirname(__DIR__) . '/src/importer.php';
 require dirname(__DIR__) . '/src/pages.php';
+require dirname(__DIR__) . '/src/roster.php';
+require dirname(__DIR__) . '/src/roster_pages.php';
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
@@ -26,6 +28,9 @@ $routes = [
     'toggle' => 'page_toggle',
     'import' => 'page_import',
     'template' => 'page_template',
+    'roster' => 'page_roster',
+    'roster_export' => 'page_roster_export',
+    'roster_import' => 'page_roster_import',
 ];
 
 try {
