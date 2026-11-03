@@ -9,6 +9,7 @@ require dirname(__DIR__) . '/src/importer.php';
 require dirname(__DIR__) . '/src/pages.php';
 require dirname(__DIR__) . '/src/roster.php';
 require dirname(__DIR__) . '/src/roster_pages.php';
+require dirname(__DIR__) . '/src/request_edit.php';
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
@@ -31,6 +32,7 @@ $routes = [
     'roster' => 'page_roster',
     'roster_export' => 'page_roster_export',
     'roster_import' => 'page_roster_import',
+    'request' => 'page_request_edit',
 ];
 
 try {
