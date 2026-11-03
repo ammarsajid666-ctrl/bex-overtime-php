@@ -35,6 +35,19 @@ function years_in(array $requests): array
     return $years;
 }
 
+/** Time dropdown options in 5-minute steps, labelled like "9:00 AM" and submitted as HH:MM. */
+function time_options(string $selected): string
+{
+    $html = '<option value=""' . ($selected === '' ? ' selected' : '') . '>Select time</option>';
+    for ($m = 0; $m < 1440; $m += 5) {
+        $h = intdiv($m, 60);
+        $value = sprintf('%02d:%02d', $h, $m % 60);
+        $label = sprintf('%d:%02d %s', $h % 12 === 0 ? 12 : $h % 12, $m % 60, $h < 12 ? 'AM' : 'PM');
+        $html .= '<option value="' . $value . '"' . ($value === $selected ? ' selected' : '') . '>' . $label . '</option>';
+    }
+    return $html;
+}
+
 function flash_html(): string
 {
     $f = take_flash();

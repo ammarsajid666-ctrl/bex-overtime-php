@@ -78,9 +78,9 @@ function page_request_edit(): void
             <input type="hidden" name="id" value="' . h($id) . '" />
             <div class="grid">
                 <div><label for="f-date">Date worked</label><input id="f-date" name="date" type="date" max="' . date('Y-m-d') . '" value="' . h($v['date']) . '" required />' . $err('date') . '</div>
-                <div><label for="f-start">Start time</label><input id="f-start" name="start" type="time" value="' . h($v['start']) . '" required />' . $err('start') . '</div>
-                <div><label for="f-end">End time</label><input id="f-end" name="end" type="time" value="' . h($v['end']) . '" required />' . $err('end') . '</div>
-                <div><label>Hours</label><div class="hours-out"><span id="hours-out">' . $hoursText . '</span> <span>hrs</span></div></div>
+                <div><label for="f-start">Start time</label><select id="f-start" name="start" required>' . time_options($v['start']) . '</select>' . $err('start') . '</div>
+                <div><label for="f-end">End time</label><select id="f-end" name="end" required>' . time_options($v['end']) . '</select>' . $err('end') . '</div>
+                <div><label>Hours</label><div class="hours-out"><span id="hours-out" data-max="' . (int)cfg('max_entry_hours') . '">' . $hoursText . '</span> <span>hrs</span></div><div id="hours-warn" class="field-error"></div></div>
                 <div class="full"><label for="f-project">Project / task</label><input id="f-project" name="project" maxlength="120" value="' . h($v['project']) . '" /></div>
                 <div class="full"><label for="f-reason">Reason</label><textarea id="f-reason" name="reason" maxlength="1000" required>' . h($v['reason']) . '</textarea>' . $err('reason') . '</div>
             </div>
