@@ -245,3 +245,8 @@ tbody tr:hover td { background: #fbfaf7; }
   height: 40px; min-height: 40px; box-sizing: border-box; padding: 0 18px;
   font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
 }
+
+/* Summary cards that open a filtered list */
+a.stat { display: block; color: inherit; text-decoration: none; transition: border-color .15s ease, transform .1s ease; }
+a.stat:hover { border-color: var(--navy-2); transform: translateY(-1px); }
+.filter-form .field-wide { flex: 2 1 240px; }

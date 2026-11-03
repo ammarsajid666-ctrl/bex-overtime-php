@@ -266,7 +266,7 @@ function filter_match(array $r, array $f): bool
 function filter_query(array $src): array
 {
     $out = [];
-    foreach (['status', 'employee', 'month', 'year', 'from', 'to'] as $key) {
+    foreach (['status', 'q', 'employee', 'month', 'year', 'from', 'to'] as $key) {
         if (isset($src[$key]) && $src[$key] !== '') $out[$key] = (string)$src[$key];
     }
     return $out;

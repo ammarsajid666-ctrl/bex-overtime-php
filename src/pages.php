@@ -144,7 +144,7 @@ function page_home(): void
         <div class="stat"><div class="label">Total submissions</div><div class="n">' . count($mine) . '</div></div>
     </div>
     <div class="card">
-        <div class="card-head"><h2>Submissions</h2><a class="btn-primary" href="' . h(url('file')) . '">File overtime</a></div>
+        <div class="card-head"><h2>Submissions</h2></div>
         <form method="get" class="filter-form">
             <input type="hidden" name="page" value="home" />
             <div class="field"><label for="f-month">Month</label><select id="f-month" name="month">' . month_options($f['month']) . '</select></div>
@@ -261,6 +261,17 @@ function team_requests(array $me): array
     return [$team, $requests];
 }
 
+/** True when the employee's name, email or Employee ID contains the search text (empty search matches everyone). */
+function person_match(array $e, string $q): bool
+{
+    if ($q === '') return true;
+    $needle = mb_strtolower($q);
+    foreach ([$e['full_name'], $e['email'], $e['employee_id']] as $field) {
+        if (str_contains(mb_strtolower((string)$field), $needle)) return true;
+    }
+    return false;
+}
+
 function page_approvals(): void
 {
     $me = require_role(['Manager']);
@@ -273,7 +284,8 @@ function page_approvals(): void
     $count = fn(string $s) => count(array_filter($all, fn($r) => $r['status'] === $s));
     $approvedHours = array_sum(array_map(fn($r) => $r['status'] === 'Approved' ? (float)$r['hours'] : 0, $all));
 
-    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f)));
+    $q = clean($_GET['q'] ?? '', 120);
+    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
     $shownHours = array_sum(array_map(fn($r) => (float)$r['hours'], $items));
 
@@ -329,15 +341,16 @@ function page_approvals(): void
     <h2 class="page-title">Approvals</h2>
     <p class="page-sub">Review overtime submitted by your team. Only your own team\'s requests appear here.</p>
     <div class="summary">
-        <div class="stat gold"><div class="label">Pending</div><div class="n">' . $count('Pending') . '</div></div>
-        <div class="stat"><div class="label">Approved</div><div class="n">' . $count('Approved') . '</div></div>
-        <div class="stat"><div class="label">Rejected</div><div class="n">' . $count('Rejected') . '</div></div>
+        <a class="stat gold" href="' . h(url('approvals', ['status' => 'pending'])) . '"><div class="label">Pending</div><div class="n">' . $count('Pending') . '</div></a>
+        <a class="stat" href="' . h(url('approvals', ['status' => 'approved'])) . '"><div class="label">Approved</div><div class="n">' . $count('Approved') . '</div></a>
+        <a class="stat" href="' . h(url('approvals', ['status' => 'rejected'])) . '"><div class="label">Rejected</div><div class="n">' . $count('Rejected') . '</div></a>
         <div class="stat"><div class="label">Approved hours</div><div class="n">' . fmt_hours($approvedHours) . '</div></div>
     </div>
     <div class="card">
         <div class="card-head"><h2>Requests</h2><span class="result-count">' . count($items) . ' shown · ' . fmt_hours($shownHours) . ' hrs</span></div>
         <form method="get" class="filter-form">
             <input type="hidden" name="page" value="approvals" />
+            <div class="field field-wide"><label for="f-q">Name, email or Employee ID</label><input id="f-q" type="search" name="q" value="' . h($q) . '" placeholder="e.g. Faizan, EMP-104" /></div>
             <div class="field"><label for="f-status">Status</label><select id="f-status" name="status">' . $statusOptions . '</select></div>
             <div class="field"><label for="f-emp">Employee</label><select id="f-emp" name="employee">' . $employeeOptions . '</select></div>
             <div class="field"><label for="f-month">Month</label><select id="f-month" name="month">' . month_options($f['month']) . '</select></div>
@@ -404,7 +417,8 @@ function page_export(): void
     if (!in_array($status, ['pending', 'approved', 'rejected', 'all'], true)) $status = 'pending';
     $f = read_filter($_GET);
 
-    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f)));
+    $q = clean($_GET['q'] ?? '', 120);
+    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
 
     $lines = ['Employee,Employee ID,Department,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC)'];
