@@ -222,8 +222,8 @@ tbody tr:hover td { background: #fbfaf7; }
 }
 
 
-/* Exact time input shown when "Clock" is chosen */
-.clock-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
-.clock-row input[type="time"] { flex: 1 1 140px; min-width: 0; }
+/* Exact time input shown when "Clock" is chosen: full width, stacked above the Use list button */
+.clock-row { display: block; margin-top: 6px; }
 .clock-row[hidden] { display: none; }
-.time-back { padding: 6px 10px; font-size: 12px; }
+.clock-row input[type="time"] { display: block; width: 100%; min-width: 0; min-height: 44px; font-size: 15px; }
+.clock-row .time-back { display: block; width: 100%; margin-top: 6px; padding: 8px 10px; font-size: 13px; }
