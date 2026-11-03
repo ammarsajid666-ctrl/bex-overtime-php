@@ -52,3 +52,10 @@ CREATE TABLE IF NOT EXISTS roster_days (
     on_duty           INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (employee_user_id, work_date)
 );
+
+-- Failed sign-in and form-abuse counters (cleared on success, pruned after a day)
+CREATE TABLE IF NOT EXISTS login_attempts (
+    attempt_key  TEXT NOT NULL,
+    at           INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_attempts_key ON login_attempts(attempt_key, at);

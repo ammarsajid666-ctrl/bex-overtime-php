@@ -40,6 +40,7 @@ function page_request_edit(): void
         ];
         $maxHours = (float)cfg('max_entry_hours');
 
+        if (looks_automated('request')) $errors['form'] = 'That was submitted too quickly. Check the details and submit again.';
         if (!valid_iso_date($v['date'])) $errors['date'] = 'Choose the date you worked.';
         elseif ($v['date'] > date('Y-m-d')) $errors['date'] = 'The date worked cannot be in the future.';
 
@@ -69,11 +70,12 @@ function page_request_edit(): void
     $hoursText = ($v['start'] !== '' && $v['end'] !== '' && $v['start'] !== $v['end'])
         ? fmt_hours(hours_between($v['start'], $v['end'])) : '0.00';
 
-    $body = flash_html() . '
+    $body = flash_html() . (isset($errors['form']) ? '<div class="flash err">' . h($errors['form']) . '</div>' : '') . '
     <h2 class="page-title">Edit overtime</h2>
     <p class="page-sub">You can change this request until your manager decides on it.</p>
     <div class="card">
         <form method="post" action="' . h(url('request', ['id' => $id])) . '">
+            ' . bot_trap_fields('request') . '
             <input type="hidden" name="_csrf" value="' . h(csrf_token()) . '" />
             <input type="hidden" name="id" value="' . h($id) . '" />
             <div class="grid">

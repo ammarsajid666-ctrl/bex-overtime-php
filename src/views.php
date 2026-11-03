@@ -89,6 +89,7 @@ function render_page(string $title, string $body): void
     <meta name="theme-color" content="#e0174f" />
     <title>' . h($title) . ' · IBEX Overtime Portal</title>
     <link rel="stylesheet" href="assets/site.css" />
+    <link rel="stylesheet" href="assets/premium.css" />
 </head>
 <body>
     <header class="topbar">
@@ -104,6 +105,7 @@ function render_page(string $title, string $body): void
     <main class="wrap">
 ' . $body . '
     </main>
+    <footer class="foot">IBEX Overtime Portal · Authorized users only · Secure connection</footer>
 </body>
 </html>';
 }

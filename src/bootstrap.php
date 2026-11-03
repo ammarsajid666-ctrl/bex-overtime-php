@@ -106,6 +106,12 @@ function start_session(): void
     ]);
     ini_set('session.gc_maxlifetime', (string)(8 * 3600));
     session_start();
+    // Sign out after 30 minutes without activity
+    if (isset($_SESSION['last_seen']) && time() - (int)$_SESSION['last_seen'] > 1800) {
+        $_SESSION = [];
+        session_regenerate_id(true);
+    }
+    $_SESSION['last_seen'] = time();
 }
 
 function current_user(): ?array

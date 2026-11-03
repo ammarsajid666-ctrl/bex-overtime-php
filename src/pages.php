@@ -22,29 +22,52 @@ function clean(mixed $value, int $max): string
 function page_login(): void
 {
     if (current_user()) redirect(home_for_role(current_user()['role']));
+    prune_attempts();
 
     $error = null;
     $email = '';
+    $ip = 'ip:' . client_ip();
     if (request_method() === 'POST') {
         check_csrf();
         $email = clean($_POST['email'] ?? '', 200);
         $password = (string)($_POST['password'] ?? '');
-        $user = user_by_email($email);
-        // Same message for unknown email, wrong password, and deactivated accounts
-        if (!$user || !$user['is_active'] || !verify_password($password, $user['password_hash'])) {
-            $error = 'Email or password is incorrect.';
+        $userKey = 'user:' . strtolower($email);
+
+        if (throttled($ip, 20, 900) || throttled($userKey, 5, 900)) {
+            $error = 'Too many sign-in attempts. Wait 15 minutes and try again.';
+        } elseif (looks_automated('login')) {
+            record_failure($ip);
+            $error = 'Please wait a moment and try again.';
         } else {
-            session_regenerate_id(true);
-            $_SESSION['uid'] = $user['id'];
-            redirect(home_for_role($user['role']));
+            $user = user_by_email($email);
+            if (!$user || !$user['is_active'] || !verify_password($password, $user['password_hash'])) {
+                record_failure($ip);
+                record_failure($userKey);
+                $error = 'Email or password is incorrect.';
+            } else {
+                clear_failures($userKey);
+                session_regenerate_id(true);
+                $_SESSION['uid'] = $user['id'];
+                redirect(home_for_role($user['role']));
+            }
         }
     }
 
-    $body = '<h2 class="page-title">Sign in</h2>
-    <p class="page-sub">Use your IBEX work email and password.</p>
+    $site = h($_SERVER['HTTP_HOST'] ?? 'this site');
+    $body = '<div class="login-wrap">
+    <div class="login-intro">
+        <span class="eyebrow">Secure staff portal</span>
+        <h2 class="page-title">Welcome back</h2>
+        <p class="page-sub">Sign in to file overtime and review your team\'s requests.</p>
+        <div class="notice">
+            <strong>Check the address first.</strong> Sign in only at <strong>' . $site . '</strong>.
+            IBEX will never ask for your password by email, chat or phone.
+        </div>
+    </div>
     <div class="card login">
-        <form method="post" action="' . h(url('login')) . '">
+        <form method="post" action="' . h(url('login')) . '" autocomplete="on">
             <input type="hidden" name="_csrf" value="' . h(csrf_token()) . '" />
+            ' . bot_trap_fields('login') . '
             ' . ($error ? '<div class="flash err">' . h($error) . '</div>' : '') . '
             <div class="grid">
                 <div class="full">
@@ -56,8 +79,9 @@ function page_login(): void
                     <input id="password" name="password" type="password" autocomplete="current-password" required />
                 </div>
             </div>
-            <div class="actions"><button type="submit" class="btn-primary">Sign in</button></div>
+            <div class="actions"><button type="submit" class="btn-primary btn-block">Sign in</button></div>
         </form>
+    </div>
     </div>';
     render_page('Sign in', $body);
 }
@@ -155,6 +179,7 @@ function page_file(): void
         ];
         $maxHours = (float)cfg('max_entry_hours');
 
+        if (looks_automated('file')) $errors['form'] = 'That was submitted too quickly. Check the details and submit again.';
         if (!valid_iso_date($v['date'])) $errors['date'] = 'Choose the date you worked.';
         elseif ($v['date'] > date('Y-m-d')) $errors['date'] = 'The date worked cannot be in the future.';
 
@@ -202,6 +227,7 @@ function page_file(): void
     <p class="page-sub">Enter the hours you worked. Your manager' . ($manager ? ' (' . h($manager['full_name']) . ')' : '') . ' will review them.</p>
     <div class="card">
         <form method="post" action="' . h(url('file')) . '">
+            ' . bot_trap_fields('file') . '
             <input type="hidden" name="_csrf" value="' . h(csrf_token()) . '" />
             ' . (isset($errors['form']) ? '<div class="flash err">' . h($errors['form']) . '</div>' : '') . '
             <div class="grid">

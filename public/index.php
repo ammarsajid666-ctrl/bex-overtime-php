@@ -10,10 +10,14 @@ require dirname(__DIR__) . '/src/pages.php';
 require dirname(__DIR__) . '/src/roster.php';
 require dirname(__DIR__) . '/src/roster_pages.php';
 require dirname(__DIR__) . '/src/request_edit.php';
+require dirname(__DIR__) . '/src/security.php';
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: same-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
+header('Cross-Origin-Opener-Policy: same-origin');
+if (!empty($_SERVER['HTTPS'])) header('Strict-Transport-Security: max-age=31536000');
 header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'");
 
 $routes = [
