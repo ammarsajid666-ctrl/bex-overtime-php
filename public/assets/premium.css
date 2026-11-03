@@ -1,220 +1,95 @@
-/* Premium look layered over site.css. Loaded after it, so these rules win. */
+/* Polish on top of the IBEX theme in site.css. Uses the same colours and fonts. */
 
-:root {
-    --pm-ink: #0f172a;
-    --pm-ink-soft: #475569;
-    --pm-line: #e2e8f0;
-    --pm-surface: #ffffff;
-    --pm-bg: #f1f5f9;
-    --pm-brand: #1e3a8a;
-    --pm-brand-2: #2563eb;
-    --pm-accent: #0ea5e9;
-    --pm-danger: #b91c1c;
-    --pm-radius: 14px;
-    --pm-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 8px 24px rgba(15, 23, 42, .08);
+/* Softer depth on cards and tiles */
+.card, .stat, .panel, .box, section.card {
+  box-shadow: 0 1px 2px rgba(31, 34, 48, .05), 0 6px 18px rgba(31, 34, 48, .06);
+  border-radius: 12px;
 }
 
-html, body { min-height: 100%; }
-
-body {
-    background:
-        radial-gradient(1200px 600px at 10% -10%, rgba(37, 99, 235, .10), transparent 60%),
-        radial-gradient(900px 500px at 110% 0%, rgba(14, 165, 233, .10), transparent 60%),
-        var(--pm-bg);
-    color: var(--pm-ink);
-    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    line-height: 1.5;
-}
-
-/* Header bar */
-header, .topbar, .site-header {
-    background: linear-gradient(120deg, var(--pm-brand) 0%, var(--pm-brand-2) 100%);
-    box-shadow: 0 2px 12px rgba(30, 58, 138, .25);
-}
-header a, .topbar a, .site-header a { color: #e0ecff; }
-header a:hover, .topbar a:hover, .site-header a:hover { color: #ffffff; }
-
-/* Content container */
-main, .container, .wrap {
-    max-width: 1120px;
-    margin-inline: auto;
-    padding-inline: 16px;
-}
-
-/* Typography */
-.page-title {
-    font-size: clamp(1.5rem, 2.4vw, 1.9rem);
-    font-weight: 700;
-    letter-spacing: -.01em;
-    margin: .25rem 0 .25rem;
-    color: var(--pm-ink);
-}
-.page-sub { color: var(--pm-ink-soft); margin: 0 0 1.25rem; }
-.eyebrow {
-    display: inline-block;
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--pm-brand-2);
-    background: rgba(37, 99, 235, .09);
-    padding: .25rem .6rem;
-    border-radius: 999px;
-    margin-bottom: .5rem;
-}
-
-/* Cards and panels */
-.card, .panel, .box, section.card {
-    background: var(--pm-surface);
-    border: 1px solid var(--pm-line);
-    border-radius: var(--pm-radius);
-    box-shadow: var(--pm-shadow);
-    padding: 1.25rem;
-}
-
-/* Stat tiles */
-.stat {
-    background: var(--pm-surface);
-    border: 1px solid var(--pm-line);
-    border-radius: var(--pm-radius);
-    box-shadow: var(--pm-shadow);
-    padding: 1rem 1.1rem;
-}
-.stat.brand {
-    background: linear-gradient(135deg, var(--pm-brand), var(--pm-brand-2));
-    color: #ffffff;
-    border-color: transparent;
-}
-.stat.brand * { color: inherit; }
-
-/* Forms */
-input, select, textarea {
-    width: 100%;
-    font: inherit;
-    color: var(--pm-ink);
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    padding: .6rem .75rem;
-    transition: border-color .15s ease, box-shadow .15s ease;
-}
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--pm-brand-2);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, .18);
-}
-label { font-weight: 600; font-size: .9rem; color: var(--pm-ink-soft); }
-
-/* Buttons */
-button, .btn, .btn-primary, input[type="submit"] {
-    font: inherit;
-    font-weight: 600;
-    border-radius: 10px;
-    padding: .6rem 1.1rem;
-    cursor: pointer;
-    transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
-}
+/* Brand-red primary buttons with a gentle lift on hover */
 .btn-primary, button[type="submit"]:not(.btn-secondary) {
-    background: linear-gradient(120deg, var(--pm-brand), var(--pm-brand-2));
-    color: #ffffff;
-    border: 0;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, .30);
+  background: linear-gradient(120deg, var(--brand), var(--brand-dark));
+  border: 0;
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(224, 23, 79, .22);
+  transition: box-shadow .15s ease, transform .05s ease;
 }
 .btn-primary:hover, button[type="submit"]:not(.btn-secondary):hover {
-    box-shadow: 0 6px 18px rgba(37, 99, 235, .40);
+  box-shadow: 0 6px 16px rgba(224, 23, 79, .32);
 }
 .btn-primary:active, button:active { transform: translateY(1px); }
 .btn-block { display: block; width: 100%; }
 
-/* Flash messages and notices */
-.flash {
-    border-radius: 10px;
-    padding: .75rem 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid transparent;
-}
-.flash.err { background: #fef2f2; color: var(--pm-danger); border-color: #fecaca; }
-.notice {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    color: #1e3a8a;
-    border-radius: 12px;
-    padding: .9rem 1rem;
-    font-size: .92rem;
-    margin-top: 1.25rem;
+/* Inputs get a brand-coloured focus ring */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(224, 23, 79, .15);
 }
 
-/* Sign-in layout */
-.login-wrap {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    align-items: center;
-    max-width: 920px;
-    margin: 2.5rem auto;
+/* Small uppercase label above the sign-in heading */
+.eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
 }
-.login-intro { padding: .5rem; }
-.login-intro .page-sub { max-width: 46ch; }
+
+/* Security notice on the sign-in page */
+.notice {
+  background: var(--brand-soft);
+  border: 1px solid #f5c2d1;
+  color: var(--navy);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  margin-top: 18px;
+}
+
+/* Sign-in layout: intro beside the form on wide screens */
+.login-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: center;
+  max-width: 920px;
+  margin: 36px auto;
+}
+.login-intro { padding: 4px; }
 .login { max-width: 420px; width: 100%; justify-self: center; }
 @media (min-width: 820px) {
-    .login-wrap { grid-template-columns: 1.1fr .9fr; }
-    .login { justify-self: end; }
+  .login-wrap { grid-template-columns: 1.1fr .9fr; }
+  .login { justify-self: end; }
 }
 
-/* Honeypot: invisible to people, present in the HTML for bots */
+/* Honeypot: hidden from people, present in the HTML for bots */
 .hp-wrap {
-    position: absolute;
-    left: -10000px;
-    top: auto;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
-
-/* Tables */
-table { border-collapse: separate; border-spacing: 0; width: 100%; }
-th {
-    font-size: .75rem;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--pm-ink-soft);
-    background: #f8fafc;
-    text-align: left;
-    padding: .7rem .8rem;
-    border-bottom: 1px solid var(--pm-line);
-}
-td { padding: .7rem .8rem; border-bottom: 1px solid #f1f5f9; }
-tr:hover td { background: #fafcff; }
 
 /* Footer */
 .foot {
-    text-align: center;
-    color: #64748b;
-    font-size: .8rem;
-    padding: 2rem 16px 2.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 28px 16px 36px;
 }
 
 /* Phone widths: keep the 16px gutter and avoid sideways scrolling */
 @media (max-width: 640px) {
-    .card, .panel, .stat { padding: 1rem; }
-    table { display: block; overflow-x: auto; }
+  .card, .panel, .stat { padding: 16px; }
+  table { display: block; overflow-x: auto; }
 }
 html, body { overflow-x: hidden; }
-
-/* Headings use the same typeface as the rest of the page */
-h1, h2, h3, h4 { font-family: inherit; }
-
-/* Header text and buttons stay readable on the blue bar */
-header, .topbar, .site-header { color: #e0ecff; }
-header button, header .btn, .topbar button, .topbar .btn, .site-header button, .site-header .btn {
-    background: rgba(255, 255, 255, .16);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, .35);
-    box-shadow: none;
-    padding: .35rem .8rem;
-    font-size: .85rem;
-}
-header button:hover, header .btn:hover, .topbar button:hover, .topbar .btn:hover {
-    background: rgba(255, 255, 255, .26);
-}
