@@ -207,7 +207,7 @@ function page_file(): void
                 <div><label for="f-date">Date worked</label><input id="f-date" name="date" type="date" max="' . date('Y-m-d') . '" value="' . h($v['date']) . '" required />' . $err('date') . '</div>
                 <div><label for="f-start">Start time</label><input id="f-start" name="start" type="time" value="' . h($v['start']) . '" required />' . $err('start') . '</div>
                 <div><label for="f-end">End time</label><input id="f-end" name="end" type="time" value="' . h($v['end']) . '" required />' . $err('end') . '</div>
-                <div><label>Hours</label><div class="hours-out">' . $hoursText . ' <span>hrs</span></div></div>
+                <div><label>Hours</label><div class="hours-out"><span id="hours-out">' . $hoursText . '</span> <span>hrs</span></div></div>
                 <div class="full"><label for="f-project">Project / task</label><input id="f-project" name="project" maxlength="120" value="' . h($v['project']) . '" /></div>
                 <div class="full"><label for="f-reason">Reason</label><textarea id="f-reason" name="reason" maxlength="1000" required>' . h($v['reason']) . '</textarea>' . $err('reason') . '</div>
             </div>
@@ -216,7 +216,8 @@ function page_file(): void
                 <a class="btn-ghost" href="' . h(url('home')) . '">Cancel</a>
             </div>
         </form>
-    </div>';
+    </div>
+    <script src="assets/overtime-hours.js" defer></script>';
     render_page('File overtime', $body);
 }
 
