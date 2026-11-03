@@ -239,3 +239,9 @@ tbody tr:hover td { background: #fbfaf7; }
 /* Status badge and Edit link sit on one centred line */
 .status-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .status-actions .btn-small { min-height: 30px; padding: 4px 12px; line-height: 1.2; }
+
+/* Filter bar buttons (Search and Clear) share one height and width */
+.filter-form .filter-actions > * {
+  height: 40px; min-height: 40px; box-sizing: border-box; padding: 0 18px;
+  font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+}
