@@ -66,7 +66,6 @@ function render_page(string $title, string $body): void
         $links = [];
         if ($user['role'] === 'Admin') $links[] = ['admin', 'Administration'];
         if ($user['role'] === 'Manager') $links[] = ['approvals', 'Approvals'];
-        if (in_array($user['role'], ['Manager', 'Admin'], true)) $links[] = ['roster', 'Roster'];
         if ($user['role'] !== 'Admin') {
             $links[] = ['home', 'My overtime'];
             $links[] = ['file', 'File overtime'];

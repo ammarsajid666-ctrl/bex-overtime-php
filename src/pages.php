@@ -276,7 +276,6 @@ function page_approvals(): void
     $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
     $shownHours = array_sum(array_map(fn($r) => (float)$r['hours'], $items));
-    $dutyMap = roster_duty_for_requests($items);
 
     $sortedTeam = $team;
     uasort($sortedTeam, fn($a, $b) => strcmp($a['full_name'], $b['full_name']));
@@ -309,9 +308,7 @@ function page_approvals(): void
             : '<span class="muted">' . h(fmt_date(substr((string)$r['decided_at_utc'], 0, 10))) . '</span>';
         $rows .= '<tr>
             <td class="title"><div class="name">' . h($e['full_name']) . '</div><div class="muted">' . h($e['employee_id']) . ' · ' . h($e['department']) . '</div></td>
-            <td data-label="Date">' . h(fmt_date($r['work_date']))
-                . (($dutyMap[$r['employee_user_id'] . '|' . $r['work_date']] ?? null) === 0
-                    ? '<div class="roster-off">Off day on roster</div>' : '') . '</td>
+            <td data-label="Date">' . h(fmt_date($r['work_date'])) . '</td>
             <td data-label="Time">' . h(substr($r['start_time'], 0, 5)) . ' – ' . h(substr($r['end_time'], 0, 5)) . '</td>
             <td data-label="Hours">' . fmt_hours($r['hours']) . '</td>
             <td data-label="Reason" class="block">' . h($r['reason']) . ($r['project'] !== '' ? '<div class="muted">' . h($r['project']) . '</div>' : '') . '</td>
@@ -410,20 +407,14 @@ function page_export(): void
     $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
 
-    $dutyMap = roster_duty_for_requests($items);
-    $lines = ['Employee,Employee ID,Department,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC),Roster'];
+    $lines = ['Employee,Employee ID,Department,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC)'];
     foreach ($items as $r) {
         $e = $team[$r['employee_user_id']];
-        $roster = match ($dutyMap[$r['employee_user_id'] . '|' . $r['work_date']] ?? null) {
-            0 => 'Off day',
-            1 => 'On duty',
-            default => '',
-        };
         $lines[] = implode(',', array_map('csv_cell', [
             $e['full_name'], $e['employee_id'], $e['department'], $r['work_date'],
             substr($r['start_time'], 0, 5), substr($r['end_time'], 0, 5), fmt_hours($r['hours']),
             $r['project'], $r['reason'], $r['status'], $r['manager_note'],
-            substr($r['submitted_at_utc'], 0, 16), $roster,
+            substr($r['submitted_at_utc'], 0, 16),
         ]));
     }
 

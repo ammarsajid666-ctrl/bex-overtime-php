@@ -37,22 +37,6 @@ CREATE TABLE IF NOT EXISTS overtime_requests (
 CREATE INDEX IF NOT EXISTS ix_requests_employee ON overtime_requests(employee_user_id, work_date);
 CREATE INDEX IF NOT EXISTS ix_requests_status   ON overtime_requests(status);
 
--- Roster: per-employee shift, site and allocation (one row per employee)
-CREATE TABLE IF NOT EXISTS roster_profiles (
-    employee_user_id  TEXT PRIMARY KEY REFERENCES users(id),
-    shift             TEXT NOT NULL DEFAULT '',
-    site              TEXT NOT NULL DEFAULT '',
-    allocation        TEXT NOT NULL DEFAULT ''
-);
-
--- Roster: on duty (1) or off (0) for each employee and date. No row means not scheduled.
-CREATE TABLE IF NOT EXISTS roster_days (
-    employee_user_id  TEXT NOT NULL REFERENCES users(id),
-    work_date         TEXT NOT NULL,           -- yyyy-mm-dd
-    on_duty           INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (employee_user_id, work_date)
-);
-
 -- Failed sign-in and form-abuse counters (cleared on success, pruned after a day)
 CREATE TABLE IF NOT EXISTS login_attempts (
     attempt_key  TEXT NOT NULL,

@@ -221,9 +221,3 @@ tbody tr:hover td { background: #fbfaf7; }
   .decide { min-width: 0; width: 100%; }
 }
 
-/* Roster */
-.roster-off { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 600; }
-.roster-table { font-size: 13px; }
-.roster-table th.day, .roster-table td.day { text-align: center; padding-left: 4px; padding-right: 4px; }
-.cell-input { min-width: 90px; }
-.cell-select { min-width: 56px; }
