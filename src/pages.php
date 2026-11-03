@@ -285,7 +285,8 @@ function page_approvals(): void
     $approvedHours = array_sum(array_map(fn($r) => $r['status'] === 'Approved' ? (float)$r['hours'] : 0, $all));
 
     $q = clean($_GET['q'] ?? '', 120);
-    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q)));
+    $loc = clean($_GET['location'] ?? '', 120);
+    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q) && ($loc === '' || $team[$r['employee_user_id']]['location'] === $loc)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
     $shownHours = array_sum(array_map(fn($r) => (float)$r['hours'], $items));
 
@@ -294,6 +295,12 @@ function page_approvals(): void
     $statusOptions = '';
     foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'all' => 'All'] as $value => $label) {
         $statusOptions .= '<option value="' . $value . '"' . ($status === $value ? ' selected' : '') . '>' . $label . '</option>';
+    }
+    $locationOptions = '<option value="">All locations</option>';
+    $locations = array_unique(array_filter(array_column($team, 'location'), fn($l) => $l !== ''));
+    sort($locations);
+    foreach ($locations as $l) {
+        $locationOptions .= '<option value="' . h($l) . '"' . ($loc === $l ? ' selected' : '') . '>' . h($l) . '</option>';
     }
     $employeeOptions = '<option value="">All employees</option>';
     foreach ($sortedTeam as $u) {
@@ -319,7 +326,7 @@ function page_approvals(): void
                 </div>'
             : '<span class="muted">' . h(fmt_date(substr((string)$r['decided_at_utc'], 0, 10))) . '</span>';
         $rows .= '<tr>
-            <td class="title"><div class="name">' . h($e['full_name']) . '</div><div class="muted">' . h($e['employee_id']) . ' · ' . h($e['department']) . '</div></td>
+            <td class="title"><div class="name">' . h($e['full_name']) . '</div><div class="muted">' . h($e['employee_id']) . ' · ' . h($e['department']) . ($e['location'] !== '' ? ' · ' . h($e['location']) : '') . '</div></td>
             <td data-label="Date">' . h(fmt_date($r['work_date'])) . '</td>
             <td data-label="Time">' . h(substr($r['start_time'], 0, 5)) . ' – ' . h(substr($r['end_time'], 0, 5)) . '</td>
             <td data-label="Hours">' . fmt_hours($r['hours']) . '</td>
@@ -353,6 +360,7 @@ function page_approvals(): void
             <div class="field field-wide"><label for="f-q">Name, email or Employee ID</label><input id="f-q" type="search" name="q" value="' . h($q) . '" placeholder="e.g. Faizan, EMP-104" /></div>
             <div class="field"><label for="f-status">Status</label><select id="f-status" name="status">' . $statusOptions . '</select></div>
             <div class="field"><label for="f-emp">Employee</label><select id="f-emp" name="employee">' . $employeeOptions . '</select></div>
+            <div class="field"><label for="f-loc">Location</label><select id="f-loc" name="location">' . $locationOptions . '</select></div>
             <div class="field"><label for="f-month">Month</label><select id="f-month" name="month">' . month_options($f['month']) . '</select></div>
             <div class="field"><label for="f-year">Year</label><select id="f-year" name="year">' . year_options(years_in($all), $f['year']) . '</select></div>
             <div class="field"><label for="f-from">From date</label><input id="f-from" type="date" name="from" value="' . h($f['from']) . '" /></div>
@@ -418,14 +426,15 @@ function page_export(): void
     $f = read_filter($_GET);
 
     $q = clean($_GET['q'] ?? '', 120);
-    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q)));
+    $loc = clean($_GET['location'] ?? '', 120);
+    $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q) && ($loc === '' || $team[$r['employee_user_id']]['location'] === $loc)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
 
-    $lines = ['Employee,Employee ID,Department,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC)'];
+    $lines = ['Employee,Employee ID,Department,Location,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC)'];
     foreach ($items as $r) {
         $e = $team[$r['employee_user_id']];
         $lines[] = implode(',', array_map('csv_cell', [
-            $e['full_name'], $e['employee_id'], $e['department'], $r['work_date'],
+            $e['full_name'], $e['employee_id'], $e['department'], $e['location'], $r['work_date'],
             substr($r['start_time'], 0, 5), substr($r['end_time'], 0, 5), fmt_hours($r['hours']),
             $r['project'], $r['reason'], $r['status'], $r['manager_note'],
             substr($r['submitted_at_utc'], 0, 16),
@@ -455,6 +464,7 @@ function validate_user(array $in, ?array $existing, array $me, bool $isNew): arr
         'role' => (string)($in['role'] ?? 'Employee'),
         'emp_id' => clean($in['emp_id'] ?? '', 40),
         'dept' => clean($in['dept'] ?? '', 120),
+        'location' => clean($in['location'] ?? '', 120),
         'manager_id' => clean($in['manager_id'] ?? '', 36),
     ];
     $errors = [];
@@ -550,6 +560,7 @@ function user_form(array $v, array $errors, ?array $existing, array $me): string
             <div><label for="role">Role</label>' . $roleField . $err('role') . '</div>
             <div><label for="emp_id">Employee ID</label><input id="emp_id" name="emp_id" maxlength="40" value="' . h($v['emp_id']) . '" />' . $err('emp_id') . '</div>
             <div><label for="dept">Department</label><input id="dept" name="dept" maxlength="120" value="' . h($v['dept']) . '" /></div>
+            <div><label for="location">Location</label><input id="location" name="location" maxlength="120" value="' . h($v['location']) . '" placeholder="e.g. Karachi, Lahore" /></div>
             <div><label for="manager_id">Reports to</label><select id="manager_id" name="manager_id">' . $managers . '</select>' . $err('manager_id') . '
                 <span class="muted">Required for employees. Managers and administrators leave this blank.</span></div>
         </div>';
@@ -565,10 +576,10 @@ function page_admin(): void
         check_csrf();
         [$errors, $v] = validate_user($_POST, null, $me, true);
         if (!$errors) {
-            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, role, manager_id, password_hash, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, location, role, manager_id, password_hash, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
             $s->execute([
-                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['role'],
+                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 hash_password($v['password']),
             ]);
@@ -586,7 +597,7 @@ function page_admin(): void
             <td data-label="Email">' . h($u['email']) . '</td>
             <td data-label="Role">' . h($u['role']) . '</td>
             <td data-label="Employee ID">' . h($u['employee_id']) . '</td>
-            <td data-label="Department">' . h($u['department']) . '</td>
+            <td data-label="Department">' . h($u['department']) . ($u['location'] !== '' ? '<div class="muted">' . h($u['location']) . '</div>' : '') . '</td>
             <td data-label="Reports to">' . h($mgr['full_name'] ?? '—') . '</td>
             <td data-label="Status"><span class="badge ' . ($u['is_active'] ? 'approved' : 'inactive') . '">' . ($u['is_active'] ? 'Active' : 'Deactivated') . '</span></td>
             <td class="actions-cell">
@@ -669,16 +680,16 @@ function page_edit(): void
     $errors = [];
     $v = [
         'name' => $user['full_name'], 'email' => $user['email'], 'password' => '', 'role' => $user['role'],
-        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'manager_id' => (string)$user['manager_id'],
+        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'location' => $user['location'], 'manager_id' => (string)$user['manager_id'],
     ];
 
     if (request_method() === 'POST') {
         check_csrf();
         [$errors, $v] = validate_user($_POST, $user, $me, false);
         if (!$errors) {
-            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
+            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, location = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
             $s->execute([
-                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['role'],
+                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 $v['password'] !== '' ? hash_password($v['password']) : $user['password_hash'],
                 $user['id'],

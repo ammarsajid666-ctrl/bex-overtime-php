@@ -27,6 +27,11 @@ function db(): PDO
         ]);
         $pdo->exec('PRAGMA busy_timeout = 5000');
         $pdo->exec(file_get_contents(dirname(__DIR__) . '/data/schema.sql'));
+        // Databases created before the location field existed get the column added once
+        $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
+        if (!in_array('location', $cols, true)) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN location TEXT NOT NULL DEFAULT ''");
+        }
     }
     return $pdo;
 }
@@ -266,7 +271,7 @@ function filter_match(array $r, array $f): bool
 function filter_query(array $src): array
 {
     $out = [];
-    foreach (['status', 'q', 'employee', 'month', 'year', 'from', 'to'] as $key) {
+    foreach (['status', 'q', 'location', 'employee', 'month', 'year', 'from', 'to'] as $key) {
         if (isset($src[$key]) && $src[$key] !== '') $out[$key] = (string)$src[$key];
     }
     return $out;
