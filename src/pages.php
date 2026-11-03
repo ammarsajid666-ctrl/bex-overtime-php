@@ -123,8 +123,8 @@ function page_home(): void
             <td data-label="Time">' . h(substr($r['start_time'], 0, 5)) . ' – ' . h(substr($r['end_time'], 0, 5)) . '</td>
             <td data-label="Hours">' . fmt_hours($r['hours']) . '</td>
             <td data-label="Project">' . h($r['project']) . '</td>
-            <td data-label="Status"><span class="badge ' . h(strtolower($r['status'])) . '">' . h($r['status']) . '</span>'
-                . ($r['status'] === 'Pending' ? ' <a class="btn-small" href="' . h(url('request', ['id' => $r['id']])) . '">Edit</a>' : '') . '</td>
+            <td data-label="Status"><div class="status-actions"><span class="badge ' . h(strtolower($r['status'])) . '">' . h($r['status']) . '</span>'
+                . ($r['status'] === 'Pending' ? '<a class="btn-small" href="' . h(url('request', ['id' => $r['id']])) . '">Edit</a>' : '') . '</div></td>
             <td data-label="Note" class="block muted">' . h($r['manager_note']) . '</td>
         </tr>';
     }

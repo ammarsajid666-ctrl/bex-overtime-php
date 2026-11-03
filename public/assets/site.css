@@ -235,3 +235,7 @@ tbody tr:hover td { background: #fbfaf7; }
 @media (max-width: 640px) {
   .stat .label { min-height: 2.6em; }
 }
+
+/* Status badge and Edit link sit on one centred line */
+.status-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.status-actions .btn-small { min-height: 30px; padding: 4px 12px; line-height: 1.2; }
