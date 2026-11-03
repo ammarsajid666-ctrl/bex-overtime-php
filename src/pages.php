@@ -140,7 +140,7 @@ function page_home(): void
     <p class="page-sub">Track your submitted hours and their approval status.</p>
     <div class="summary">
         <div class="stat gold"><div class="label">Awaiting approval</div><div class="n">' . $pending . '</div></div>
-        <div class="stat"><div class="label">Approved this month</div><div class="n">' . fmt_hours($approvedMonth) . ' hrs</div></div>
+        <div class="stat"><div class="label">Approved this month</div><div class="n">' . fmt_hours($approvedMonth) . ' <span class="unit">hrs</span></div></div>
         <div class="stat"><div class="label">Total submissions</div><div class="n">' . count($mine) . '</div></div>
     </div>
     <div class="card">

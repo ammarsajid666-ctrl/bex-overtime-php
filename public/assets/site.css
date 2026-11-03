@@ -149,6 +149,7 @@ tbody tr:hover td { background: #fbfaf7; }
 .stat { background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--navy-2); border-radius: 8px; padding: 18px 20px; }
 .stat.gold { border-top-color: var(--gold); }
 .stat .n { font-family: var(--serif); font-size: 30px; color: var(--navy); margin-top: 6px; }
+.stat .n .unit { font-family: var(--sans); font-size: 14px; color: var(--muted); margin-left: 2px; }
 
 .login { max-width: 420px; margin: 40px auto; }
 .hours-out { font-family: var(--serif); font-size: 26px; color: var(--navy); padding-top: 4px; }
@@ -227,3 +228,8 @@ tbody tr:hover td { background: #fbfaf7; }
 .clock-row[hidden] { display: none; }
 .clock-row input[type="time"] { display: block; width: 100%; min-width: 0; min-height: 44px; font-size: 15px; }
 .clock-row .time-back { display: block; width: 100%; margin-top: 6px; padding: 8px 10px; font-size: 13px; }
+
+/* Keep stat numbers level when a label wraps onto two lines on phones */
+@media (max-width: 640px) {
+  .stat .label { min-height: 2.6em; }
+}
