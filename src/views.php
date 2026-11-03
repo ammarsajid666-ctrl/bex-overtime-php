@@ -36,15 +36,38 @@ function years_in(array $requests): array
 }
 
 /** Time dropdown options in 5-minute steps, labelled like "9:00 AM" and submitted as HH:MM. */
-function time_options(string $selected): string
+/** Reads a time posted by time_field(): the exact clock value if one was typed, else the list value. */
+function read_time(string $key): string
 {
-    $html = '<option value=""' . ($selected === '' ? ' selected' : '') . '>Select time</option>';
-    for ($m = 0; $m < 1440; $m += 5) {
-        $h = intdiv($m, 60);
-        $value = sprintf('%02d:%02d', $h, $m % 60);
-        $label = sprintf('%d:%02d %s', $h % 12 === 0 ? 12 : $h % 12, $m % 60, $h < 12 ? 'AM' : 'PM');
-        $html .= '<option value="' . $value . '"' . ($value === $selected ? ' selected' : '') . '>' . $label . '</option>';
+    $exact = clean($_POST[$key . '_exact'] ?? '', 5);
+    if ($exact !== '') return $exact;
+    $value = clean($_POST[$key] ?? '', 5);
+    return $value === '__clock' ? '' : $value;
+}
+
+/**
+ * Start or end time: a dropdown in 5-minute steps, plus a "Clock" option that shows a
+ * clock input for any exact minute. A time that is not on the 5-minute list opens in clock mode.
+ */
+function time_field(string $key, string $label, string $selected): string
+{
+    $clock = $selected !== '' && !(preg_match('/^(\d{2}):(\d{2})$/', $selected, $m) && (int)$m[2] % 5 === 0 && (int)$m[1] < 24);
+    $html = '<label for="f-' . $key . '">' . h($label) . '</label>'
+        . '<select id="f-' . $key . '" name="' . $key . '"' . ($clock ? ' disabled' : ' required') . '>'
+        . '<option value="">Select time</option>'
+        . '<option value="__clock"' . ($clock ? ' selected' : '') . '>Clock: type exact time</option>';
+    for ($m2 = 0; $m2 < 1440; $m2 += 5) {
+        $h = intdiv($m2, 60);
+        $value = sprintf('%02d:%02d', $h, $m2 % 60);
+        $text = sprintf('%d:%02d %s', $h % 12 === 0 ? 12 : $h % 12, $m2 % 60, $h < 12 ? 'AM' : 'PM');
+        $html .= '<option value="' . $value . '"' . (!$clock && $value === $selected ? ' selected' : '') . '>' . $text . '</option>';
     }
+    $html .= '</select>';
+    $html .= '<div class="clock-row" id="clock-' . $key . '"' . ($clock ? '' : ' hidden') . '>'
+        . '<input type="time" id="f-' . $key . '-clock" name="' . $key . '_exact" step="60"'
+        . ($clock ? ' value="' . h($selected) . '"' : ' disabled') . ' aria-label="' . h($label) . ' (exact time)" />'
+        . '<button type="button" class="btn-ghost time-back" data-time-back="' . $key . '">Use list</button>'
+        . '</div>';
     return $html;
 }
 

@@ -33,8 +33,8 @@ function page_request_edit(): void
         check_csrf();
         $v = [
             'date' => clean($_POST['date'] ?? '', 10),
-            'start' => clean($_POST['start'] ?? '', 5),
-            'end' => clean($_POST['end'] ?? '', 5),
+            'start' => read_time('start'),
+            'end' => read_time('end'),
             'project' => clean($_POST['project'] ?? '', 120),
             'reason' => clean($_POST['reason'] ?? '', 1000),
         ];
@@ -80,8 +80,8 @@ function page_request_edit(): void
             <input type="hidden" name="id" value="' . h($id) . '" />
             <div class="grid">
                 <div><label for="f-date">Date worked</label><input id="f-date" name="date" type="date" max="' . date('Y-m-d') . '" value="' . h($v['date']) . '" required />' . $err('date') . '</div>
-                <div><label for="f-start">Start time</label><select id="f-start" name="start" required>' . time_options($v['start']) . '</select>' . $err('start') . '</div>
-                <div><label for="f-end">End time</label><select id="f-end" name="end" required>' . time_options($v['end']) . '</select>' . $err('end') . '</div>
+                <div>' . time_field('start', 'Start time', $v['start']) . $err('start') . '</div>
+                <div>' . time_field('end', 'End time', $v['end']) . $err('end') . '</div>
                 <div><label>Hours</label><div class="hours-out"><span id="hours-out" data-max="' . (int)cfg('max_entry_hours') . '">' . $hoursText . '</span> <span>hrs</span></div><div id="hours-warn" class="field-error"></div></div>
                 <div class="full"><label for="f-project">Project / task</label><input id="f-project" name="project" maxlength="120" value="' . h($v['project']) . '" /></div>
                 <div class="full"><label for="f-reason">Reason</label><textarea id="f-reason" name="reason" maxlength="1000" required>' . h($v['reason']) . '</textarea>' . $err('reason') . '</div>

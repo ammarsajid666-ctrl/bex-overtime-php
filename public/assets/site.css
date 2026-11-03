@@ -221,3 +221,9 @@ tbody tr:hover td { background: #fbfaf7; }
   .decide { min-width: 0; width: 100%; }
 }
 
+
+/* Exact time input shown when "Clock" is chosen */
+.clock-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.clock-row input[type="time"] { flex: 1 1 140px; min-width: 0; }
+.clock-row[hidden] { display: none; }
+.time-back { padding: 6px 10px; font-size: 12px; }
