@@ -139,7 +139,7 @@ function page_home(): void
     <h2 class="page-title">My overtime</h2>
     <p class="page-sub">Track your submitted hours and their approval status.</p>
     <div class="summary">
-        <div class="stat brand"><div class="label">Awaiting approval</div><div class="n">' . $pending . '</div></div>
+        <div class="stat gold"><div class="label">Awaiting approval</div><div class="n">' . $pending . '</div></div>
         <div class="stat"><div class="label">Approved this month</div><div class="n">' . fmt_hours($approvedMonth) . ' hrs</div></div>
         <div class="stat"><div class="label">Total submissions</div><div class="n">' . count($mine) . '</div></div>
     </div>
@@ -329,7 +329,7 @@ function page_approvals(): void
     <h2 class="page-title">Approvals</h2>
     <p class="page-sub">Review overtime submitted by your team. Only your own team\'s requests appear here.</p>
     <div class="summary">
-        <div class="stat brand"><div class="label">Pending</div><div class="n">' . $count('Pending') . '</div></div>
+        <div class="stat gold"><div class="label">Pending</div><div class="n">' . $count('Pending') . '</div></div>
         <div class="stat"><div class="label">Approved</div><div class="n">' . $count('Approved') . '</div></div>
         <div class="stat"><div class="label">Rejected</div><div class="n">' . $count('Rejected') . '</div></div>
         <div class="stat"><div class="label">Approved hours</div><div class="n">' . fmt_hours($approvedHours) . '</div></div>
