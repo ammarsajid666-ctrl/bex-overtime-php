@@ -29,7 +29,7 @@ function db(): PDO
         $pdo->exec(file_get_contents(dirname(__DIR__) . '/data/schema.sql'));
         // Databases created before these columns existed get them added once
         $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
-        foreach (['location', 'designation'] as $col) {
+        foreach (['location', 'designation', 'entity'] as $col) {
             if (!in_array($col, $cols, true)) {
                 $pdo->exec("ALTER TABLE users ADD COLUMN $col TEXT NOT NULL DEFAULT ''");
             }

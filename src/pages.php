@@ -296,7 +296,7 @@ function page_approvals(): void
     foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'all' => 'All'] as $value => $label) {
         $statusOptions .= '<option value="' . $value . '"' . ($status === $value ? ' selected' : '') . '>' . $label . '</option>';
     }
-    $locationOptions = '<option value="">All locations</option>';
+    $locationOptions = '<option value="">All sites</option>';
     $locations = array_unique(array_filter(array_column($team, 'location'), fn($l) => $l !== ''));
     sort($locations);
     foreach ($locations as $l) {
@@ -360,7 +360,7 @@ function page_approvals(): void
             <div class="field field-wide"><label for="f-q">Name, email or Employee ID</label><input id="f-q" type="search" name="q" value="' . h($q) . '" placeholder="e.g. Faizan, EMP-104" /></div>
             <div class="field"><label for="f-status">Status</label><select id="f-status" name="status">' . $statusOptions . '</select></div>
             <div class="field"><label for="f-emp">Employee</label><select id="f-emp" name="employee">' . $employeeOptions . '</select></div>
-            <div class="field"><label for="f-loc">Location</label><select id="f-loc" name="location">' . $locationOptions . '</select></div>
+            <div class="field"><label for="f-loc">Site</label><select id="f-loc" name="location">' . $locationOptions . '</select></div>
             <div class="field"><label for="f-month">Month</label><select id="f-month" name="month">' . month_options($f['month']) . '</select></div>
             <div class="field"><label for="f-year">Year</label><select id="f-year" name="year">' . year_options(years_in($all), $f['year']) . '</select></div>
             <div class="field"><label for="f-from">From date</label><input id="f-from" type="date" name="from" value="' . h($f['from']) . '" /></div>
@@ -463,7 +463,7 @@ function page_export(): void
         $name = $parts ? $last . ', ' . implode(' ', $parts) : $last;
         $lines[] = implode(',', [
             csv_plain($e['employee_id']), csv_plain($name), csv_plain($e['designation']),
-            csv_plain(implode(', ', $g['projects'])), csv_plain('IBEX'), csv_plain($e['location']),
+            csv_plain(implode(', ', $g['projects'])), csv_plain($e['entity']), csv_plain($e['location']),
             csv_plain(date('F', strtotime($g['month'] . '-01'))), csv_plain(rtrim(rtrim(number_format($g['hours'], 2, '.', ''), '0'), '.')),
         ]);
     }
@@ -495,6 +495,7 @@ function validate_user(array $in, ?array $existing, array $me, bool $isNew): arr
         'dept' => clean($in['dept'] ?? '', 120),
         'location' => clean($in['location'] ?? '', 120),
         'designation' => clean($in['designation'] ?? '', 120),
+        'entity' => clean($in['entity'] ?? '', 120),
         'manager_id' => clean($in['manager_id'] ?? '', 36),
     ];
     $errors = [];
@@ -522,6 +523,12 @@ function validate_user(array $in, ?array $existing, array $me, bool $isNew): arr
     if (!in_array($v['role'], ['Employee', 'Manager', 'Admin'], true)) {
         $errors['role'] = 'Choose a valid role.';
     }
+
+    // Required on every user: these fill the OT summary sheet
+    if ($v['emp_id'] === '') $errors['emp_id'] = 'Enter the Employee ID.';
+    if ($v['designation'] === '') $errors['designation'] = 'Enter the designation.';
+    if ($v['entity'] === '') $errors['entity'] = 'Enter the entity (for example IBEX).';
+    if ($v['location'] === '') $errors['location'] = 'Enter the site (for example Lahore).';
 
     if ($v['emp_id'] !== '') {
         foreach ($users as $u) {
@@ -588,10 +595,11 @@ function user_form(array $v, array $errors, ?array $existing, array $me): string
             <div><label for="password">' . ($existing ? 'New password' : 'Temporary password') . '</label>
                 <input id="password" name="password" type="password" autocomplete="new-password" ' . ($existing ? 'placeholder="Leave blank to keep"' : 'required') . ' />' . $err('password') . '</div>
             <div><label for="role">Role</label>' . $roleField . $err('role') . '</div>
-            <div><label for="emp_id">Employee ID</label><input id="emp_id" name="emp_id" maxlength="40" value="' . h($v['emp_id']) . '" />' . $err('emp_id') . '</div>
+            <div><label for="emp_id">Employee ID</label><input id="emp_id" name="emp_id" maxlength="40" value="' . h($v['emp_id']) . '" required />' . $err('emp_id') . '</div>
+            <div><label for="designation">Designation</label><input id="designation" name="designation" maxlength="120" value="' . h($v['designation']) . '" placeholder="e.g. Senior Server Administrator" required />' . $err('designation') . '</div>
+            <div><label for="entity">Entity</label><input id="entity" name="entity" maxlength="120" value="' . h($v['entity']) . '" placeholder="e.g. IBEX" required />' . $err('entity') . '</div>
+            <div><label for="location">Site</label><input id="location" name="location" maxlength="120" value="' . h($v['location']) . '" placeholder="e.g. Lahore" required />' . $err('location') . '</div>
             <div><label for="dept">Department</label><input id="dept" name="dept" maxlength="120" value="' . h($v['dept']) . '" /></div>
-            <div><label for="designation">Designation</label><input id="designation" name="designation" maxlength="120" value="' . h($v['designation']) . '" placeholder="e.g. Senior Server Administrator" /></div>
-            <div><label for="location">Location</label><input id="location" name="location" maxlength="120" value="' . h($v['location']) . '" placeholder="e.g. Karachi, Lahore" /></div>
             <div><label for="manager_id">Reports to</label><select id="manager_id" name="manager_id">' . $managers . '</select>' . $err('manager_id') . '
                 <span class="muted">Required for employees. Managers and administrators leave this blank.</span></div>
         </div>';
@@ -601,16 +609,16 @@ function page_admin(): void
 {
     $me = require_role(['Admin']);
     $errors = [];
-    $v = ['name' => '', 'email' => '', 'password' => '', 'role' => 'Employee', 'emp_id' => '', 'dept' => '', 'manager_id' => ''];
+    $v = ['name' => '', 'email' => '', 'password' => '', 'role' => 'Employee', 'emp_id' => '', 'dept' => '', 'designation' => '', 'entity' => '', 'location' => '', 'manager_id' => ''];
 
     if (request_method() === 'POST') {
         check_csrf();
         [$errors, $v] = validate_user($_POST, null, $me, true);
         if (!$errors) {
-            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, designation, location, role, manager_id, password_hash, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, designation, entity, location, role, manager_id, password_hash, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
             $s->execute([
-                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['location'], $v['role'],
+                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['entity'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 hash_password($v['password']),
             ]);
@@ -711,16 +719,16 @@ function page_edit(): void
     $errors = [];
     $v = [
         'name' => $user['full_name'], 'email' => $user['email'], 'password' => '', 'role' => $user['role'],
-        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'designation' => $user['designation'], 'location' => $user['location'], 'manager_id' => (string)$user['manager_id'],
+        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'designation' => $user['designation'], 'entity' => $user['entity'], 'location' => $user['location'], 'manager_id' => (string)$user['manager_id'],
     ];
 
     if (request_method() === 'POST') {
         check_csrf();
         [$errors, $v] = validate_user($_POST, $user, $me, false);
         if (!$errors) {
-            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, designation = ?, location = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
+            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, designation = ?, entity = ?, location = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
             $s->execute([
-                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['location'], $v['role'],
+                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['entity'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 $v['password'] !== '' ? hash_password($v['password']) : $user['password_hash'],
                 $user['id'],
