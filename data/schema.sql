@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     employee_id    TEXT NOT NULL DEFAULT '',
     department     TEXT NOT NULL DEFAULT '',
     location       TEXT NOT NULL DEFAULT '',
+    designation    TEXT NOT NULL DEFAULT '',
     role           TEXT NOT NULL CHECK (role IN ('Employee', 'Manager', 'Admin')),
     manager_id     TEXT NULL REFERENCES users(id),
     password_hash  TEXT NOT NULL,

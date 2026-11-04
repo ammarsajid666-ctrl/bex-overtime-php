@@ -27,10 +27,12 @@ function db(): PDO
         ]);
         $pdo->exec('PRAGMA busy_timeout = 5000');
         $pdo->exec(file_get_contents(dirname(__DIR__) . '/data/schema.sql'));
-        // Databases created before the location field existed get the column added once
+        // Databases created before these columns existed get them added once
         $cols = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
-        if (!in_array('location', $cols, true)) {
-            $pdo->exec("ALTER TABLE users ADD COLUMN location TEXT NOT NULL DEFAULT ''");
+        foreach (['location', 'designation'] as $col) {
+            if (!in_array($col, $cols, true)) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN $col TEXT NOT NULL DEFAULT ''");
+            }
         }
     }
     return $pdo;

@@ -430,26 +430,55 @@ function page_export(): void
     $items = array_values(array_filter($all, fn($r) => ($status === 'all' || strtolower($r['status']) === $status) && filter_match($r, $f) && person_match($team[$r['employee_user_id']], $q) && ($loc === '' || $team[$r['employee_user_id']]['location'] === $loc)));
     usort($items, fn($a, $b) => strcmp($a['submitted_at_utc'], $b['submitted_at_utc']));
 
-    $lines = ['Employee,Employee ID,Department,Location,Date,Start,End,Hours,Project,Reason,Status,Manager note,Submitted (UTC)'];
-    foreach ($items as $r) {
+    // Summary for payroll: approved hours per employee per month, in the same layout as the OT summary sheet.
+    $approved = array_values(array_filter($items, fn($r) => strtolower($r['status']) === 'approved'));
+    $groups = [];
+    foreach ($approved as $r) {
         $e = $team[$r['employee_user_id']];
-        $lines[] = implode(',', array_map('csv_cell', [
-            $e['full_name'], $e['employee_id'], $e['department'], $e['location'], $r['work_date'],
-            substr($r['start_time'], 0, 5), substr($r['end_time'], 0, 5), fmt_hours($r['hours']),
-            $r['project'], $r['reason'], $r['status'], $r['manager_note'],
-            substr($r['submitted_at_utc'], 0, 16),
-        ]));
+        $key = $e['id'] . '|' . substr($r['work_date'], 0, 7);
+        if (!isset($groups[$key])) {
+            $groups[$key] = ['employee' => $e, 'month' => substr($r['work_date'], 0, 7), 'hours' => 0.0, 'projects' => []];
+        }
+        $groups[$key]['hours'] += (float)$r['hours'];
+        $project = trim((string)$r['project']);
+        if ($project !== '' && !in_array($project, $groups[$key]['projects'], true)) $groups[$key]['projects'][] = $project;
+    }
+    uasort($groups, fn($a, $b) => [$a['month'], strtolower($a['employee']['full_name'])] <=> [$b['month'], strtolower($b['employee']['full_name'])]);
+
+    $months = array_unique(array_column($groups, 'month'));
+    sort($months);
+    if (count($months) === 1) {
+        $title = 'Summary of OT for the month of ' . date('F Y', strtotime($months[0] . '-01'));
+    } elseif ($months) {
+        $title = 'Summary of OT for the months of ' . date('F Y', strtotime($months[0] . '-01')) . ' to ' . date('F Y', strtotime(end($months) . '-01'));
+    } else {
+        $title = 'Summary of OT';
+    }
+
+    $lines = [csv_plain($title) . str_repeat(',', 7), 'Employee ID,Name,Designation,Project / Task Description,Entity,Site,OT Month,OT Hours'];
+    foreach ($groups as $g) {
+        $e = $g['employee'];
+        $parts = preg_split('/\s+/', trim((string)$e['full_name']));
+        $last = array_pop($parts);
+        $name = $parts ? $last . ', ' . implode(' ', $parts) : $last;
+        $lines[] = implode(',', [
+            csv_plain($e['employee_id']), csv_plain($name), csv_plain($e['designation']),
+            csv_plain(implode(', ', $g['projects'])), csv_plain('IBEX'), csv_plain($e['location']),
+            csv_plain(date('F', strtotime($g['month'] . '-01'))), csv_plain(rtrim(rtrim(number_format($g['hours'], 2, '.', ''), '0'), '.')),
+        ]);
     }
 
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="overtime-' . $status . '-' . date('Ymd') . '.csv"');
-    echo "\xEF\xBB\xBF" . implode("\r\n", $lines) . "\r\n";
+    header('Content-Disposition: attachment; filename="ot-summary-' . ($months ? implode('-', array_unique([$months[0], end($months)])) : date('Ym')) . '.csv"');
+    echo "\xEF\xBB\xBF" . implode("\r\n", $lines) . "\r\n\r\n";
     exit;
 }
 
-function csv_cell(mixed $value): string
+/** CSV field that is quoted only when it needs quoting, as in the OT summary sheet. */
+function csv_plain(mixed $value): string
 {
-    return '"' . str_replace('"', '""', (string)$value) . '"';
+    $text = (string)$value;
+    return preg_match('/[",\r\n]/', $text) ? '"' . str_replace('"', '""', $text) . '"' : $text;
 }
 
 /* ---------- administrator ---------- */
@@ -465,6 +494,7 @@ function validate_user(array $in, ?array $existing, array $me, bool $isNew): arr
         'emp_id' => clean($in['emp_id'] ?? '', 40),
         'dept' => clean($in['dept'] ?? '', 120),
         'location' => clean($in['location'] ?? '', 120),
+        'designation' => clean($in['designation'] ?? '', 120),
         'manager_id' => clean($in['manager_id'] ?? '', 36),
     ];
     $errors = [];
@@ -560,6 +590,7 @@ function user_form(array $v, array $errors, ?array $existing, array $me): string
             <div><label for="role">Role</label>' . $roleField . $err('role') . '</div>
             <div><label for="emp_id">Employee ID</label><input id="emp_id" name="emp_id" maxlength="40" value="' . h($v['emp_id']) . '" />' . $err('emp_id') . '</div>
             <div><label for="dept">Department</label><input id="dept" name="dept" maxlength="120" value="' . h($v['dept']) . '" /></div>
+            <div><label for="designation">Designation</label><input id="designation" name="designation" maxlength="120" value="' . h($v['designation']) . '" placeholder="e.g. Senior Server Administrator" /></div>
             <div><label for="location">Location</label><input id="location" name="location" maxlength="120" value="' . h($v['location']) . '" placeholder="e.g. Karachi, Lahore" /></div>
             <div><label for="manager_id">Reports to</label><select id="manager_id" name="manager_id">' . $managers . '</select>' . $err('manager_id') . '
                 <span class="muted">Required for employees. Managers and administrators leave this blank.</span></div>
@@ -576,10 +607,10 @@ function page_admin(): void
         check_csrf();
         [$errors, $v] = validate_user($_POST, null, $me, true);
         if (!$errors) {
-            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, location, role, manager_id, password_hash, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
+            $s = db()->prepare('INSERT INTO users (id, full_name, email, employee_id, department, designation, location, role, manager_id, password_hash, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)');
             $s->execute([
-                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['location'], $v['role'],
+                uuid(), $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 hash_password($v['password']),
             ]);
@@ -680,16 +711,16 @@ function page_edit(): void
     $errors = [];
     $v = [
         'name' => $user['full_name'], 'email' => $user['email'], 'password' => '', 'role' => $user['role'],
-        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'location' => $user['location'], 'manager_id' => (string)$user['manager_id'],
+        'emp_id' => $user['employee_id'], 'dept' => $user['department'], 'designation' => $user['designation'], 'location' => $user['location'], 'manager_id' => (string)$user['manager_id'],
     ];
 
     if (request_method() === 'POST') {
         check_csrf();
         [$errors, $v] = validate_user($_POST, $user, $me, false);
         if (!$errors) {
-            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, location = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
+            $s = db()->prepare('UPDATE users SET full_name = ?, email = ?, employee_id = ?, department = ?, designation = ?, location = ?, role = ?, manager_id = ?, password_hash = ? WHERE id = ?');
             $s->execute([
-                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['location'], $v['role'],
+                $v['name'], $v['email'], $v['emp_id'], $v['dept'], $v['designation'], $v['location'], $v['role'],
                 $v['role'] === 'Employee' ? $v['manager_id'] : null,
                 $v['password'] !== '' ? hash_password($v['password']) : $user['password_hash'],
                 $user['id'],
